@@ -71,11 +71,11 @@ class Settings(BaseSettings):
     # ============================================
     # Qdrant Configuration
     # ============================================
-    QDRANT_URL: str
-    QDRANT_API_KEY: str
-    QDRANT_COLLECTION_PREFIX: str = "portfolio"
-    VECTOR_DIMENSION: int = 1536  # OpenAI ada-002 size
-    VECTOR_DISTANCE: str = "cosine"
+    QDRANT_URL: str = Field(default="http://localhost:6333", env="QDRANT_URL")
+    QDRANT_API_KEY: Optional[str] = Field(default=None, env="QDRANT_API_KEY")
+    QDRANT_COLLECTION_PREFIX: str = Field(default="portfolio", env="QDRANT_COLLECTION_PREFIX")
+    VECTOR_DIMENSION: int = Field(default=1536, env="VECTOR_DIMENSION")
+    VECTOR_DISTANCE: str = Field(default="cosine", env="VECTOR_DISTANCE")
     
     @field_validator("QDRANT_URL")
     @classmethod

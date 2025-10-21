@@ -1,8 +1,3 @@
-"""
-Database Models
-Pydantic models for MongoDB collections
-"""
-
 from datetime import datetime
 from typing import Optional, Any
 from pydantic import BaseModel, Field, ConfigDict
@@ -48,4 +43,111 @@ class BaseDBModel(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-__all__ = ["BaseDBModel", "PyObjectId"]
+# Import all models
+from app.models.user import (
+    User, 
+    UserCreate, 
+    UserLogin, 
+    UserResponse
+)
+
+from app.models.portfolio import (
+    Portfolio,
+    PortfolioCreate,
+    PortfolioUpdate,
+    PortfolioResponse,
+    SocialLinks,
+    PortfolioSettings
+)
+
+from app.models.project import (
+    Project,
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectResponse,
+    ProjectListResponse,
+    ProjectFilter,
+    ProjectStatus,
+    ProjectCategory
+)
+
+from app.models.blog import (
+    BlogPost,
+    BlogPostCreate,
+    BlogPostUpdate,
+    BlogPostResponse,
+    BlogPostListResponse,
+    BlogPostFilter,
+    BlogStatus,
+    BlogCategory
+)
+
+
+__all__ = [
+    # Base classes
+    "BaseDBModel",
+    "PyObjectId",
+    
+    # User models
+    "User",
+    "UserCreate",
+    "UserLogin",
+    "UserResponse",
+    
+    # Portfolio models
+    "Portfolio",
+    "PortfolioCreate",
+    "PortfolioUpdate",
+    "PortfolioResponse",
+    "SocialLinks",
+    "PortfolioSettings",
+    
+    # Project models
+    "Project",
+    "ProjectCreate",
+    "ProjectUpdate",
+    "ProjectResponse",
+    "ProjectListResponse",
+    "ProjectFilter",
+    "ProjectStatus",
+    "ProjectCategory",
+    
+    # Blog models
+    "BlogPost",
+    "BlogPostCreate",
+    "BlogPostUpdate",
+    "BlogPostResponse",
+    "BlogPostListResponse",
+    "BlogPostFilter",
+    "BlogStatus",
+    "BlogCategory",
+
+    # Chat models
+    "ChatMessage",
+    "ChatConversation",
+    "ChatMessageCreate",
+    "ChatConversationCreate",
+    "ChatConversationUpdate",
+    "ChatResponse",
+    "ConversationListResponse",
+    "ConversationFilter",
+    "ConversationStats",
+    "MessageRole",
+    "MessageType",
+    "ConversationStatus",
+    
+    # Vector models
+    "VectorPoint",
+    "VectorSearchRequest",
+    "VectorSearchResult",
+    "VectorSearchResponse",
+    "IndexRequest",
+    "IndexResponse",
+    "BulkIndexRequest",
+    "BulkIndexResponse",
+    "DeleteIndexRequest",
+    "DeleteIndexResponse",
+    "CollectionStats",
+    "VectorHealth",
+    "ContentType",
+]
