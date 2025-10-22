@@ -83,18 +83,27 @@ Context provided: {context}
             sources = []
             
             for i, result in enumerate(search_results.results, 1):
+                # FIXED: Safely access metadata fields
+                metadata = result.metadata or {}
+                title = metadata.get("title", "Untitled")
+                description = metadata.get("description", result.text_content[:100])
+                tech_stack = metadata.get("tech_stack", [])
+                url = metadata.get("url", "")
+                
+                # Build context part
                 context_parts.append(
-                    f"{i}. {result.title} ({result.content_type.value})\n"
-                    f"   {result.description}\n"
-                    f"   Tech: {', '.join(result.tech_stack)}\n"
+                    f"{i}. {title} ({result.content_type.value})\n"
+                    f"   {description}\n"
+                    f"   Tech: {', '.join(tech_stack) if tech_stack else 'Not specified'}\n"
                     f"   Relevance: {result.score:.2f}"
                 )
                 
+                # Build source info
                 sources.append({
-                    "content_id": result.content_id,
-                    "title": result.title,
+                    "content_id": str(result.content_id),
+                    "title": title,
                     "type": result.content_type.value,
-                    "url": result.url,
+                    "url": url,
                     "score": result.score
                 })
             

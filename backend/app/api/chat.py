@@ -1,9 +1,12 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.services.chat_service import get_chat_service
 from app.models.chat import ChatMessageCreate, ChatResponse
+from app.middleware.cost_limiter import get_cost_limiter  # ADDED
+from app.utils.db import db_manager  # CHANGED: Use existing db_manager
 from app.utils.logger import logger
 
 
@@ -68,15 +71,16 @@ class SuggestedQuestionsResponse(BaseModel):
 
 
 @router.post("/", response_model=ChatResponseModel)
-async def chat(request: ChatRequest):
+async def chat(request: ChatRequest):  # CHANGED: Removed db_client from params
     """
     Process a chat message
     
     This endpoint:
-    1. Searches for relevant context using vector search
-    2. Generates AI response using OpenAI
-    3. Returns response with actions and metadata
-    4. Tracks costs and performance
+    1. Checks cost limits (session, daily, monthly)
+    2. Searches for relevant context using vector search
+    3. Generates AI response using OpenAI
+    4. Returns response with actions and metadata
+    5. Tracks costs and performance
     
     Args:
         request: ChatRequest with query, portfolio_id, session_id
@@ -85,13 +89,34 @@ async def chat(request: ChatRequest):
         ChatResponseModel with AI response and metadata
         
     Raises:
-        HTTPException: If processing fails
+        HTTPException: If processing fails or rate limited
     """
     try:
         logger.info(f"Chat request from session {request.session_id}: '{request.query[:50]}'")
         
-        # Get chat service
+        # Get services
+        limiter = get_cost_limiter()
         chat_service = get_chat_service()
+        
+        # CHANGED: Get MongoDB client from db_manager
+        db_client = db_manager.client
+        
+        # Check cost limits (Tier 1, 2, 3)
+        check_result = await limiter.check_limits(
+            session_id=request.session_id,
+            portfolio_id=request.portfolio_id,
+            db_client=db_client
+        )
+        
+        if not check_result["allowed"]:
+            logger.warning(
+                f"Rate limit hit for session {request.session_id} "
+                f"(tier: {check_result['tier']})"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=check_result["error"]
+            )
         
         # Process message
         result = chat_service.process_message(
@@ -101,9 +126,33 @@ async def chat(request: ChatRequest):
             conversation_history=None  # TODO: Load from database
         )
         
+        # Record request for session tracking
+        limiter.record_request(
+            session_id=request.session_id,
+            cost=result["metadata"]["cost"]
+        )
+        
+        # Track usage in MongoDB for daily/monthly limits
+        await limiter.track_usage(
+            portfolio_id=request.portfolio_id,
+            cost=result["metadata"]["cost"],
+            tokens=result["metadata"]["tokens_used"],
+            db_client=db_client
+        )
+        
+        logger.info(
+            f"Chat response generated - "
+            f"tokens: {result['metadata']['tokens_used']}, "
+            f"cost: ${result['metadata']['cost']:.6f}, "
+            f"cached: {result['metadata']['from_cache']}"
+        )
+        
         # Return response
         return ChatResponseModel(**result)
         
+    except HTTPException:
+        # Re-raise HTTP exceptions (like rate limits)
+        raise
     except Exception as e:
         logger.error(f"Chat endpoint error: {e}")
         raise HTTPException(

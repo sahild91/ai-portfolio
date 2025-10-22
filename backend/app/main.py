@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import chat
+from app.utils.db import db_manager  # CHANGED: Import existing db_manager
 from app.utils.logger import logger
 
 # Create FastAPI app
@@ -47,6 +48,10 @@ async def health_check():
 async def startup_event():
     """Run on application startup"""
     logger.info("AI Portfolio API starting...")
+    
+    # CHANGED: Connect to MongoDB using existing db_manager
+    await db_manager.connect()
+    
     logger.info("API documentation available at: /docs")
 
 # Shutdown event
@@ -54,6 +59,9 @@ async def startup_event():
 async def shutdown_event():
     """Run on application shutdown"""
     logger.info("AI Portfolio API shutting down...")
+    
+    # CHANGED: Disconnect from MongoDB
+    await db_manager.disconnect()
 
 
 if __name__ == "__main__":
